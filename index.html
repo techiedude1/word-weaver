@@ -1,602 +1,326 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Word Weaver - Master Your Pronunciation</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Custom CSS -->
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        .scrollable-content {
-            max-height: 400px; /* Max height for scrollable area */
-            overflow-y: auto; /* Enable vertical scrolling */
-            scrollbar-width: thin; /* For Firefox */
-            scrollbar-color: #9ca3af #f3f4f6; /* For Firefox */
-        }
-        .scrollable-content::-webkit-scrollbar {
-            width: 8px; /* Width of the scrollbar */
-        }
-        .scrollable-content::-webkit-scrollbar-track {
-            background: #f3f4f6; /* Track color */
-            border-radius: 10px;
-        }
-        .scrollable-content::-webkit-scrollbar-thumb {
-            background-color: #9ca3af; /* Thumb color */
-            border-radius: 10px;
-            border: 2px solid #f3f4f6; /* Padding around thumb */
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Word Weaver - Master Your Pronunciation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .scrollable-content { max-height: 400px; overflow-y: auto; }
+    .scrollable-content::-webkit-scrollbar { width: 8px; }
+    .scrollable-content::-webkit-scrollbar-thumb { background-color: #9ca3af; border-radius: 10px; }
+  </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 font-sans text-gray-800 flex flex-col items-center p-4">
+<body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col items-center p-4">
+  <header class="w-full max-w-4xl text-center py-8">
+    <h1 class="text-5xl font-extrabold text-indigo-700 mb-4">Word Weaver</h1>
+    <p class="text-xl text-gray-600">Master tricky words and sentences through everyday practice.</p>
+  </header>
+  <main class="w-full max-w-4xl bg-white rounded-3xl shadow-xl p-8 md:p-12 mb-8 border border-blue-200">
+    <!-- Word Practice Section -->
+    <section class="mb-12 pb-8 border-b border-blue-100">
+      <h2 class="text-3xl font-bold text-indigo-600 mb-4">Refine Your Word Pronunciation</h2>
+      <p class="text-lg text-gray-700 mb-6">
+        Enter individual words that challenge your pronunciation.<br>
+        <span class="font-semibold">Tip: Add a hint in parentheses, e.g. <code>rural (r sound)</code>.</span>
+      </p>
+      <div id="wordInputsContainer" class="flex flex-col gap-4 mb-6"></div>
+      <button id="addWordFieldBtn" class="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl shadow-lg font-semibold text-lg">Add More Words</button>
+      <button id="findWordsBtn" class="w-full px-8 py-4 rounded-xl text-white font-semibold text-lg shadow-lg mt-4 bg-indigo-600 hover:bg-indigo-700">Get Word Practice</button>
+      <div id="wordErrorMessage" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl relative mt-4 hidden"><strong>Oops!</strong> <span></span></div>
+    </section>
+    <!-- Sentence Practice Section -->
+    <section class="mb-8 pt-8">
+      <h2 class="text-3xl font-bold text-indigo-600 mb-4">Practice Challenging Sentences</h2>
+      <p class="text-lg text-gray-700 mb-6">Enter a sentence you find difficult to say. We'll provide similar sentences for practice.</p>
+      <div id="sentenceInputsContainer" class="flex flex-col gap-4 mb-6"></div>
+      <button id="addSentenceFieldBtn" class="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl shadow-lg font-semibold text-lg">Add More Sentences</button>
+      <button id="findSentencesBtn" class="w-full px-8 py-4 rounded-xl text-white font-semibold text-lg shadow-lg mt-4 bg-indigo-600 hover:bg-indigo-700">Get Sentence Practice</button>
+      <div id="sentenceErrorMessage" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl relative mt-4 hidden"><strong>Oops!</strong> <span></span></div>
+    </section>
+    <!-- Combined Results Section -->
+    <section>
+      <div id="resultsTitle" class="text-3xl font-bold text-indigo-600 mb-6 border-b pb-3 border-blue-200 hidden">Your Personalized Practice Kit</div>
+      <div id="wordResultsContainer"></div>
+      <div id="sentenceResultsContainer"></div>
+    </section>
+  </main>
+  <footer class="w-full max-w-4xl text-center py-6 text-gray-500 text-sm">
+    <p>&copy; <span id="currentYear"></span> Word Weaver. All rights reserved.</p>
+  </footer>
+<script>
+document.getElementById('currentYear').textContent = new Date().getFullYear();
 
-    <header class="w-full max-w-4xl text-center py-8">
-        <h1 class="text-5xl font-extrabold text-indigo-700 mb-4 tracking-tight">
-            Word Weaver
-        </h1>
-        <p class="text-xl text-gray-600">
-            Master tricky words and sentences through everyday practice.
-        </p>
-    </header>
+const generateUniqueId = () => `id-${Math.random().toString(36).substring(2, 11)}`;
+let wordEntries = [{ id: generateUniqueId(), value: '' }];
+let wordResults = {};
+let wordLoading = false;
+let sentenceEntries = [{ id: generateUniqueId(), value: '' }];
+let sentenceResults = {};
+let sentenceLoading = false;
+const wordInputsContainer = document.getElementById('wordInputsContainer');
+const sentenceInputsContainer = document.getElementById('sentenceInputsContainer');
+const findWordsBtn = document.getElementById('findWordsBtn');
+const findSentencesBtn = document.getElementById('findSentencesBtn');
+const wordErrorMessageElem = document.getElementById('wordErrorMessage');
+const sentenceErrorMessageElem = document.getElementById('sentenceErrorMessage');
+const wordResultsContainer = document.getElementById('wordResultsContainer');
+const sentenceResultsContainer = document.getElementById('sentenceResultsContainer');
+const resultsTitle = document.getElementById('resultsTitle');
 
-    <main class="w-full max-w-4xl bg-white rounded-3xl shadow-xl p-8 md:p-12 mb-8 border border-blue-200">
-        <!-- Word Practice Section -->
-        <section class="mb-12 pb-8 border-b border-blue-100">
-            <h2 class="text-3xl font-bold text-indigo-600 mb-4">
-                Refine Your Word Pronunciation
-            </h2>
-            <p class="text-lg text-gray-700 mb-6 leading-relaxed">
-                Enter individual words that challenge your pronunciation. Especially for non-native English speakers, mastering specific sounds can be key to clear, confident speech.
-                <br/>
-                <span class="font-semibold">For targeted help, specify the tricky part in parentheses, e.g., `rural (r sound)`, `will (ll sound)`, or `are (r sound)`.</span> Add as many words as you need!
-                Common pronunciation challenges for non-native speakers often include: 'th' sounds (e.g., *this*, *think*), 'r' sounds (e.g., *rural*, *mirror*), 'l' sounds (e.g., *feel*, *little*), vowel distinctions (e.g., *ship* vs. *sheep*), and consonant clusters. This app can help you tackle them all!
-            </p>
+function renderWordInputs() {
+  wordInputsContainer.innerHTML = '';
+  wordEntries.forEach((entry, index) => {
+    const inputWrapper = document.createElement('div');
+    inputWrapper.className = 'flex flex-col sm:flex-row gap-2 items-center';
+    inputWrapper.innerHTML = `
+      <input type="text" class="flex-grow p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 text-lg shadow-sm w-full"
+        placeholder="${index === 0 ? "e.g., 'there (th sound)'" : "Enter another word..."}"
+        value="${entry.value}" data-id="${entry.id}" aria-label="Enter word ${index + 1}" />
+      ${wordEntries.length > 1 ? `<button class="remove-word-btn px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl shadow-md text-base" data-id="${entry.id}" aria-label="Remove word ${index + 1}">Remove</button>` : ''}
+    `;
+    wordInputsContainer.appendChild(inputWrapper);
+  });
+  addWordInputListeners();
+  updateWordButtonState();
+}
+function addWordInputListeners() {
+  wordInputsContainer.querySelectorAll('input').forEach(input => {
+    input.oninput = (e) => handleWordInputChange(e.target.dataset.id, e.target.value);
+  });
+  wordInputsContainer.querySelectorAll('.remove-word-btn').forEach(button => {
+    button.onclick = (e) => handleRemoveWordField(e.target.dataset.id);
+  });
+}
+function renderSentenceInputs() {
+  sentenceInputsContainer.innerHTML = '';
+  sentenceEntries.forEach((entry, index) => {
+    const inputWrapper = document.createElement('div');
+    inputWrapper.className = 'flex flex-col sm:flex-row gap-2 items-center';
+    inputWrapper.innerHTML = `
+      <textarea class="flex-grow p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 text-lg shadow-sm w-full"
+        placeholder="${index === 0 ? "e.g., 'She sells seashells by the seashore.'" : "Enter another sentence..."}"
+        data-id="${entry.id}" rows="2" aria-label="Enter sentence ${index + 1}">${entry.value}</textarea>
+      ${sentenceEntries.length > 1 ? `<button class="remove-sentence-btn px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl shadow-md text-base" data-id="${entry.id}" aria-label="Remove sentence ${index + 1}">Remove</button>` : ''}
+    `;
+    sentenceInputsContainer.appendChild(inputWrapper);
+  });
+  addSentenceInputListeners();
+  updateSentenceButtonState();
+}
+function addSentenceInputListeners() {
+  sentenceInputsContainer.querySelectorAll('textarea').forEach(textarea => {
+    textarea.oninput = (e) => handleSentenceInputChange(e.target.dataset.id, e.target.value);
+  });
+  sentenceInputsContainer.querySelectorAll('.remove-sentence-btn').forEach(button => {
+    button.onclick = (e) => handleRemoveSentenceField(e.target.dataset.id);
+  });
+}
+function renderResults() {
+  wordResultsContainer.innerHTML = '';
+  sentenceResultsContainer.innerHTML = '';
+  const hasResults = Object.keys(wordResults).length > 0 || Object.keys(sentenceResults).length > 0;
+  resultsTitle.classList.toggle('hidden', !hasResults);
+  // Word results
+  Object.entries(wordResults).forEach(([originalWordInput, wordsData]) => {
+    const displayWord = originalWordInput.split('(')[0].trim();
+    const div = document.createElement('div');
+    div.className = 'mb-10 p-6 bg-blue-50 rounded-2xl shadow-md border border-blue-200';
+    div.innerHTML = `
+      <h3 class="text-2xl font-bold text-indigo-700 mb-4 capitalize">Words for "<span class="text-blue-700">${displayWord}</span>"</h3>
+      <div class="scrollable-content max-h-96 pr-2">
+        <ul class="space-y-4">${
+        wordsData.map(item => `
+          <li class="p-4 bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row items-start sm:items-center">
+            <span class="font-semibold text-lg text-indigo-800 w-full sm:w-1/4 mb-2 sm:mb-0">${item.word}:</span>
+            <p class="text-gray-700 text-base w-full sm:w-3/4"><span class="font-medium">Sentence:</span> ${item.sentence}</p>
+          </li>
+        `).join('')
+      }</ul></div>`;
+    wordResultsContainer.appendChild(div);
+  });
+  // Sentence results
+  Object.entries(sentenceResults).forEach(([originalSentenceInput, sentencesData]) => {
+    const div = document.createElement('div');
+    div.className = 'mb-10 p-6 bg-purple-50 rounded-2xl shadow-md border border-purple-200';
+    div.innerHTML = `
+      <h3 class="text-2xl font-bold text-purple-700 mb-4">Sentences for "<span class="text-purple-700">${originalSentenceInput}</span>"</h3>
+      <div class="scrollable-content max-h-96 pr-2">
+        <ul class="space-y-4">${
+        sentencesData.map(item => `
+          <li class="p-4 bg-white rounded-xl shadow-sm border border-gray-100">
+            <p class="text-gray-700 text-base">${item.sentence}</p>
+          </li>
+        `).join('')
+      }</ul></div>`;
+    sentenceResultsContainer.appendChild(div);
+  });
+}
+function handleAddWordField() {
+  wordEntries.push({ id: generateUniqueId(), value: '' });
+  renderWordInputs();
+}
+function handleRemoveWordField(idToRemove) {
+  wordEntries = wordEntries.filter(entry => entry.id !== idToRemove);
+  renderWordInputs();
+}
+function handleWordInputChange(id, newValue) {
+  wordEntries = wordEntries.map(entry =>
+    entry.id === id ? { ...entry, value: newValue } : entry
+  );
+  updateWordButtonState();
+}
+function updateWordButtonState() {
+  const hasEnoughWords = wordEntries.filter(e => e.value.trim().length > 0).length >= 1;
+  findWordsBtn.disabled = wordLoading || !hasEnoughWords;
+  findWordsBtn.classList.toggle('bg-indigo-300', findWordsBtn.disabled);
+}
+function handleAddSentenceField() {
+  sentenceEntries.push({ id: generateUniqueId(), value: '' });
+  renderSentenceInputs();
+}
+function handleRemoveSentenceField(idToRemove) {
+  sentenceEntries = sentenceEntries.filter(entry => entry.id !== idToRemove);
+  renderSentenceInputs();
+}
+function handleSentenceInputChange(id, newValue) {
+  sentenceEntries = sentenceEntries.map(entry =>
+    entry.id === id ? { ...entry, value: newValue } : entry
+  );
+  updateSentenceButtonState();
+}
+function updateSentenceButtonState() {
+  const hasEnoughSentences = sentenceEntries.filter(e => e.value.trim().length > 0).length >= 1;
+  findSentencesBtn.disabled = sentenceLoading || !hasEnoughSentences;
+  findSentencesBtn.classList.toggle('bg-indigo-300', findSentencesBtn.disabled);
+}
 
-            <div id="wordInputsContainer" class="flex flex-col gap-4 mb-6">
-                <!-- Word input fields will be added here by JavaScript -->
-            </div>
-            <button id="addWordFieldBtn" class="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl shadow-lg transition-transform duration-300 ease-in-out hover:scale-105 active:scale-95 font-semibold text-lg">
-                Add More Words
-            </button>
+async function fetchSimilarWords(wordEntryValue) {
+  wordErrorMessageElem.classList.add('hidden');
+  wordErrorMessageElem.querySelector('span').textContent = '';
+  const parts = wordEntryValue.split('(');
+  const originalWord = parts[0].trim();
 
-            <button id="findWordsBtn" class="w-full px-8 py-4 rounded-xl text-white font-semibold text-lg shadow-lg transform transition-all duration-300 ease-in-out mt-4 bg-indigo-600 hover:bg-indigo-700 hover:scale-105 active:scale-95">
-                Get Word Practice
-            </button>
+  try {
+    // Step 1: Find similar-sounding and related words using Datamuse API
+    let datamuseUrl = `https://api.datamuse.com/words?rel_rhy=${encodeURIComponent(originalWord)}&max=6`;
+    let res = await fetch(datamuseUrl);
+    let rhymeWords = await res.json();
 
-            <div id="wordErrorMessage" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl relative mt-4 hidden" role="alert">
-                <strong class="font-bold">Oops!</strong>
-                <span class="block sm:inline ml-2"></span>
-            </div>
-        </section>
+    datamuseUrl = `https://api.datamuse.com/words?ml=${encodeURIComponent(originalWord)}&max=4`;
+    res = await fetch(datamuseUrl);
+    let meaningWords = await res.json();
 
-        <!-- Sentence Practice Section -->
-        <section class="mb-8 pt-8">
-            <h2 class="text-3xl font-bold text-indigo-600 mb-4">
-                Practice Challenging Sentences
-            </h2>
-            <p class="text-lg text-gray-700 mb-6 leading-relaxed">
-                Enter a sentence you find difficult to say smoothly or with clear pronunciation. We'll provide similar sentences to help you practice your speaking rhythm, intonation, and overall fluency in context.
-            </p>
+    const allWords = [...rhymeWords.map(w => w.word), ...meaningWords.map(w => w.word)]
+      .filter((w, i, arr) => arr.indexOf(w) === i && w.toLowerCase() !== originalWord.toLowerCase())
+      .slice(0, 10);
 
-            <div id="sentenceInputsContainer" class="flex flex-col gap-4 mb-6">
-                <!-- Sentence input fields will be added here by JavaScript -->
-            </div>
-            <button id="addSentenceFieldBtn" class="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl shadow-lg transition-transform duration-300 ease-in-out hover:scale-105 active:scale-95 font-semibold text-lg">
-                Add More Sentences
-            </button>
-
-            <button id="findSentencesBtn" class="w-full px-8 py-4 rounded-xl text-white font-semibold text-lg shadow-lg transform transition-all duration-300 ease-in-out mt-4 bg-indigo-600 hover:bg-indigo-700 hover:scale-105 active:scale-95">
-                Get Sentence Practice
-            </button>
-
-            <div id="sentenceErrorMessage" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl relative mt-4 hidden" role="alert">
-                <strong class="font-bold">Oops!</strong>
-                <span class="block sm:inline ml-2"></span>
-            </div>
-        </section>
-
-        <!-- Combined Results Section -->
-        <section>
-            <div id="resultsTitle" class="text-3xl font-bold text-indigo-600 mb-6 border-b pb-3 border-blue-200 hidden">
-                Your Personalized Practice Kit
-            </div>
-
-            <!-- Word Results Display -->
-            <div id="wordResultsContainer">
-                <!-- Word results will be rendered here by JavaScript -->
-            </div>
-
-            <!-- Sentence Results Display -->
-            <div id="sentenceResultsContainer">
-                <!-- Sentence results will be rendered here by JavaScript -->
-            </div>
-        </section>
-    </main>
-
-    <footer class="w-full max-w-4xl text-center py-6 text-gray-500 text-sm">
-        <p>&copy; <span id="currentYear"></span> Word Weaver. All rights reserved.</p>
-    </footer>
-
-    <script>
-        document.getElementById('currentYear').textContent = new Date().getFullYear();
-
-        // Helper to generate unique IDs
-        const generateUniqueId = () => `id-${Math.random().toString(36).substring(2, 11)}`;
-
-        // State variables (JavaScript objects, replacing React state)
-        let wordEntries = [{ id: generateUniqueId(), value: '' }];
-        let wordResults = {};
-        let wordLoading = false;
-
-        let sentenceEntries = [{ id: generateUniqueId(), value: '' }];
-        let sentenceResults = {};
-        let sentenceLoading = false;
-
-        // DOM elements
-        const wordInputsContainer = document.getElementById('wordInputsContainer');
-        const sentenceInputsContainer = document.getElementById('sentenceInputsContainer');
-        const findWordsBtn = document.getElementById('findWordsBtn');
-        const findSentencesBtn = document.getElementById('findSentencesBtn');
-        const wordErrorMessageElem = document.getElementById('wordErrorMessage');
-        const sentenceErrorMessageElem = document.getElementById('sentenceErrorMessage');
-        const wordResultsContainer = document.getElementById('wordResultsContainer');
-        const sentenceResultsContainer = document.getElementById('sentenceResultsContainer');
-        const resultsTitle = document.getElementById('resultsTitle');
-
-        // --- UI Rendering Functions ---
-
-        function renderWordInputs() {
-            wordInputsContainer.innerHTML = ''; // Clear existing inputs
-            wordEntries.forEach((entry, index) => {
-                const inputWrapper = document.createElement('div');
-                inputWrapper.className = 'flex flex-col sm:flex-row gap-2 items-center';
-                inputWrapper.innerHTML = `
-                    <input
-                        type="text"
-                        class="flex-grow p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 text-lg shadow-sm w-full"
-                        placeholder="${index === 0 ? "e.g., 'there (th sound)'" : "Enter another word..."}"
-                        value="${entry.value}"
-                        data-id="${entry.id}"
-                        aria-label="Enter word ${index + 1}"
-                    />
-                    ${wordEntries.length > 1 ? `
-                    <button
-                        class="remove-word-btn px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl shadow-md transition-transform duration-200 active:scale-95 text-base"
-                        data-id="${entry.id}"
-                        aria-label="Remove word ${index + 1}"
-                    >
-                        Remove
-                    </button>` : ''}
-                `;
-                wordInputsContainer.appendChild(inputWrapper);
-            });
-            addWordInputListeners();
-            updateWordButtonState();
+    // Step 2: For each word, try to find a simple sentence using Tatoeba API (free and public)
+    async function getSentence(word) {
+      try {
+        const tatUrl = `https://tatoeba.org/en/api_v0/search?from=eng&to=eng&query=${encodeURIComponent(word)}`;
+        const response = await fetch(tatUrl);
+        const data = await response.json();
+        if (data && data.results && data.results.length > 0) {
+          const ex = data.results.find(r => r.text.includes(word));
+          if (ex) return ex.text;
         }
+        // fallback:
+        return `Can you use "${word}" in a sentence?`;
+      } catch {
+        return `Can you use "${word}" in a sentence?`;
+      }
+    }
 
-        function addWordInputListeners() {
-            wordInputsContainer.querySelectorAll('input').forEach(input => {
-                input.oninput = (e) => handleWordInputChange(e.target.dataset.id, e.target.value);
-            });
-            wordInputsContainer.querySelectorAll('.remove-word-btn').forEach(button => {
-                button.onclick = (e) => handleRemoveWordField(e.target.dataset.id);
-            });
-        }
+    // If no related words found, return fallback message
+    if (allWords.length === 0) {
+      return [{ word: "No words found", sentence: "Try another word!" }];
+    }
 
-        function renderSentenceInputs() {
-            sentenceInputsContainer.innerHTML = ''; // Clear existing inputs
-            sentenceEntries.forEach((entry, index) => {
-                const inputWrapper = document.createElement('div');
-                inputWrapper.className = 'flex flex-col sm:flex-row gap-2 items-center';
-                inputWrapper.innerHTML = `
-                    <textarea
-                        class="flex-grow p-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 text-lg shadow-sm w-full"
-                        placeholder="${index === 0 ? "e.g., 'She sells seashells by the seashore.'" : "Enter another sentence..."}"
-                        value="${entry.value}"
-                        data-id="${entry.id}"
-                        rows="2"
-                        aria-label="Enter sentence ${index + 1}"
-                    ></textarea>
-                    ${sentenceEntries.length > 1 ? `
-                    <button
-                        class="remove-sentence-btn px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl shadow-md transition-transform duration-200 active:scale-95 text-base"
-                        data-id="${entry.id}"
-                        aria-label="Remove sentence ${index + 1}"
-                    >
-                        Remove
-                    </button>` : ''}
-                `;
-                sentenceInputsContainer.appendChild(inputWrapper);
-            });
-            addSentenceInputListeners();
-            updateSentenceButtonState();
-        }
+    // Step 3: Map each to {word, sentence}
+    const arr = [];
+    for (let word of allWords) {
+      let sentence = await getSentence(word);
+      arr.push({ word, sentence });
+    }
+    return arr;
 
-        function addSentenceInputListeners() {
-            sentenceInputsContainer.querySelectorAll('textarea').forEach(textarea => {
-                textarea.oninput = (e) => handleSentenceInputChange(e.target.dataset.id, e.target.value);
-            });
-            sentenceInputsContainer.querySelectorAll('.remove-sentence-btn').forEach(button => {
-                button.onclick = (e) => handleRemoveSentenceField(e.target.dataset.id);
-            });
-        }
+  } catch (error) {
+    wordErrorMessageElem.classList.remove('hidden');
+    wordErrorMessageElem.querySelector('span').textContent = `Failed to fetch words for "${originalWord}". Details: ${error.message}`;
+    return [{ word: "Error", sentence: `Failed to fetch: ${error.message}` }];
+  }
+}
 
-        function renderResults() {
-            wordResultsContainer.innerHTML = '';
-            sentenceResultsContainer.innerHTML = '';
-            
-            const hasResults = Object.keys(wordResults).length > 0 || Object.keys(sentenceResults).length > 0;
-            resultsTitle.classList.toggle('hidden', !hasResults);
+// Fallback: Simple sentence paraphraser using basic transforms
+function simpleParaphrase(sentence) {
+  // 1. Flip subject/pronoun to another similar pronoun
+  let paraphrases = [
+    sentence.replace(/\bI\b/g, "We"),
+    sentence.replace(/\bmy\b/g, "our"),
+    sentence.replace(/\bthe\b/g, "that"),
+    sentence.replace(/\ba\b/g, "one"),
+    sentence.replace(/\bis\b/g, "was"),
+    sentence + " (again)",
+    "Practice: " + sentence
+  ];
+  // Return unique and not empty sentences
+  return paraphrases.filter((v, i, arr) => v.trim() && arr.indexOf(v) === i).slice(0,5);
+}
 
-            // Render Word Results
-            Object.entries(wordResults).forEach(([originalWordInput, wordsData]) => {
-                const displayWord = originalWordInput.split('(')[0].trim();
-                const div = document.createElement('div');
-                div.className = 'mb-10 p-6 bg-blue-50 rounded-2xl shadow-md border border-blue-200';
-                div.innerHTML = `
-                    <h3 class="text-2xl font-bold text-indigo-700 mb-4 capitalize">
-                        Words for "<span class="text-blue-700">${displayWord}</span>"
-                    </h3>
-                    <div class="scrollable-content max-h-96 md:max-h-[500px] pr-2">
-                        <ul class="space-y-4">
-                            ${wordsData.map((item, index) => `
-                                <li class="p-4 bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row items-start sm:items-center">
-                                    <span class="font-semibold text-lg text-indigo-800 w-full sm:w-1/4 mb-2 sm:mb-0">
-                                        ${item.word}:
-                                    </span>
-                                    <p class="text-gray-700 text-base w-full sm:w-3/4">
-                                        <span class="font-medium">Sentence:</span> ${item.sentence}
-                                    </p>
-                                </li>
-                            `).join('')}
-                        </ul>
-                    </div>
-                `;
-                wordResultsContainer.appendChild(div);
-            });
+async function fetchSimilarSentences(originalSentence) {
+  sentenceErrorMessageElem.classList.add('hidden');
+  sentenceErrorMessageElem.querySelector('span').textContent = '';
+  // For this public/free version, use a simple transformation fallback
+  return simpleParaphrase(originalSentence).map(s => ({ sentence: s }));
+}
 
-            // Render Sentence Results
-            Object.entries(sentenceResults).forEach(([originalSentenceInput, sentencesData]) => {
-                const div = document.createElement('div');
-                div.className = 'mb-10 p-6 bg-purple-50 rounded-2xl shadow-md border border-purple-200';
-                div.innerHTML = `
-                    <h3 class="text-2xl font-bold text-purple-700 mb-4">
-                        Sentences for "<span class="text-purple-700">${originalSentenceInput}</span>"
-                    </h3>
-                    <div class="scrollable-content max-h-96 md:max-h-[500px] pr-2">
-                        <ul class="space-y-4">
-                            ${sentencesData.map((item, index) => `
-                                <li class="p-4 bg-white rounded-xl shadow-sm border border-gray-100">
-                                    <p class="text-gray-700 text-base">
-                                        ${item.sentence}
-                                    </p>
-                                </li>
-                            `).join('')}
-                        </ul>
-                    </div>
-                `;
-                sentenceResultsContainer.appendChild(div);
-            });
-        }
-
-        // --- Word Input Handlers ---
-
-        function handleAddWordField() {
-            wordEntries.push({ id: generateUniqueId(), value: '' });
-            renderWordInputs();
-        }
-
-        function handleRemoveWordField(idToRemove) {
-            wordEntries = wordEntries.filter(entry => entry.id !== idToRemove);
-            const removedWordEntry = wordEntries.find(entry => entry.id === idToRemove);
-            if (removedWordEntry && wordResults[removedWordEntry.value]) {
-                delete wordResults[removedWordEntry.value];
-            }
-            renderWordInputs();
-            renderResults(); // Re-render results to remove the corresponding section
-        }
-
-        function handleWordInputChange(id, newValue) {
-            wordEntries = wordEntries.map(entry =>
-                entry.id === id ? { ...entry, value: newValue } : entry
-            );
-            updateWordButtonState();
-        }
-
-        function updateWordButtonState() {
-            const hasEnoughWords = wordEntries.filter(e => e.value.trim().length > 0).length >= 1;
-            findWordsBtn.disabled = wordLoading || !hasEnoughWords;
-            findWordsBtn.classList.toggle('bg-indigo-300', findWordsBtn.disabled);
-            findWordsBtn.classList.toggle('hover:bg-indigo-700', !findWordsBtn.disabled);
-            findWordsBtn.classList.toggle('hover:scale-105', !findWordsBtn.disabled);
-            findWordsBtn.classList.toggle('active:scale-95', !findWordsBtn.disabled);
-            findWordsBtn.classList.toggle('cursor-not-allowed', findWordsBtn.disabled);
-
-            if (wordLoading) {
-                findWordsBtn.innerHTML = `
-                    <span class="flex items-center justify-center">
-                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Finding Words...
-                    </span>`;
-            } else {
-                findWordsBtn.textContent = 'Get Word Practice';
-            }
-        }
-
-        // --- Sentence Input Handlers ---
-
-        function handleAddSentenceField() {
-            sentenceEntries.push({ id: generateUniqueId(), value: '' });
-            renderSentenceInputs();
-        }
-
-        function handleRemoveSentenceField(idToRemove) {
-            sentenceEntries = sentenceEntries.filter(entry => entry.id !== idToRemove);
-            const removedSentenceEntry = sentenceEntries.find(entry => entry.id === idToRemove);
-            if (removedSentenceEntry && sentenceResults[removedSentenceEntry.value]) {
-                delete sentenceResults[removedSentenceEntry.value];
-            }
-            renderSentenceInputs();
-            renderResults(); // Re-render results to remove the corresponding section
-        }
-
-        function handleSentenceInputChange(id, newValue) {
-            sentenceEntries = sentenceEntries.map(entry =>
-                entry.id === id ? { ...entry, value: newValue } : entry
-            );
-            updateSentenceButtonState();
-        }
-
-        function updateSentenceButtonState() {
-            const hasEnoughSentences = sentenceEntries.filter(e => e.value.trim().length > 0).length >= 1;
-            findSentencesBtn.disabled = sentenceLoading || !hasEnoughSentences;
-            findSentencesBtn.classList.toggle('bg-indigo-300', findSentencesBtn.disabled);
-            findSentencesBtn.classList.toggle('hover:bg-indigo-700', !findSentencesBtn.disabled);
-            findSentencesBtn.classList.toggle('hover:scale-105', !findSentencesBtn.disabled);
-            findSentencesBtn.classList.toggle('active:scale-95', !findSentencesBtn.disabled);
-            findSentencesBtn.classList.toggle('cursor-not-allowed', findSentencesBtn.disabled);
-
-            if (sentenceLoading) {
-                findSentencesBtn.innerHTML = `
-                    <span class="flex items-center justify-center">
-                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Finding Sentences...
-                    </span>`;
-            } else {
-                findSentencesBtn.textContent = 'Get Sentence Practice';
-            }
-        }
-
-        // --- API Call Functions (Vanilla JS) ---
-
-        async function fetchSimilarWords(wordEntryValue) {
-            wordErrorMessageElem.classList.add('hidden');
-            wordErrorMessageElem.querySelector('span').textContent = '';
-
-            const parts = wordEntryValue.split('(');
-            const originalWord = parts[0].trim();
-            const phoneticInstruction = parts.length > 1 ? parts[1].replace(')', '').trim() : '';
-
-            let prompt;
-            if (phoneticInstruction) {
-                prompt = `For the word '${originalWord}', focusing on the '${phoneticInstruction}' sound/part for pronunciation, provide exactly 10 words that share a similar pronunciation challenge or sound pattern. For each of these 10 words, provide a practical sentence. Ensure the sentence is easy to understand and uses the word naturally, aiding a non-native English speaker. Return the output as a JSON array where each object has 'word' (string) and 'sentence' (string) keys. If you cannot find 10, provide as many as possible.`;
-            } else {
-                prompt = `For the word '${originalWord}', provide exactly 10 words that are similar in meaning or sound, or commonly confused. For each of these 10 words, provide a practical sentence. Ensure the sentence is easy to understand and uses the word naturally, aiding a non-native English speaker. Return the output as a JSON array where each object has 'word' (string) and 'sentence' (string) keys. If you cannot find 10, provide as many as possible.`;
-            }
-
-            try {
-                const generationConfig = {
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: "ARRAY",
-                        items: {
-                            type: "OBJECT",
-                            properties: {
-                                "word": { "type": "STRING" },
-                                "sentence": { "type": "STRING" }
-                            },
-                            "propertyOrdering": ["word", "sentence"]
-                        }
-                    }
-                };
-
-                const chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
-                const payload = { contents: chatHistory, generationConfig: generationConfig };
-                // !!! IMPORTANT: Replace "YOUR_GEMINI_API_KEY" below with your actual Google Cloud/Gemini API key for text generation. !!!
-                // This is the ONLY API key required in this version.
-                // You can obtain a Gemini API key from Google AI Studio (https://aistudio.google.com/app/apikey) or Google Cloud Console.
-                const apiKey = "YOUR_GEMINI_API_KEY"; // <--- REPLACE THIS LINE WITH YOUR ACTUAL GEMINI API KEY
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
-                }
-
-                const result = await response.json();
-                if (result.candidates && result.candidates.length > 0 &&
-                    result.candidates[0].content && result.candidates[0].content.parts &&
-                    result.candidates[0].content.parts.length > 0) {
-                    const jsonString = result.candidates[0].content.parts[0].text;
-                    try {
-                        const parsedJson = JSON.parse(jsonString);
-                        if (Array.isArray(parsedJson) && parsedJson.every(item => typeof item === 'object' && 'word' in item && 'sentence' in item)) {
-                            return parsedJson;
-                        } else {
-                            console.warn("LLM response format unexpected (Words):", parsedJson);
-                            return [{ word: "Error", sentence: "Could not parse API response." }];
-                        }
-                    } catch (parseError) {
-                        console.error("Failed to parse LLM JSON response (Words):", parseError, jsonString);
-                        return [{ word: "Error", sentence: "Could not parse API response." }];
-                    }
-                } else {
-                    console.warn("No content in LLM response (Words):", result);
-                    return [{ word: "No results", sentence: "Could not find similar words." }];
-                }
-            } catch (error) {
-                console.error("Error fetching similar words for:", originalWord, error);
-                wordErrorMessageElem.classList.remove('hidden');
-                wordErrorMessageElem.querySelector('span').textContent = `Failed to fetch words for "${originalWord}". Please try again. (Details: ${error.message})`;
-                return [{ word: "Error", sentence: `Failed to fetch: ${error.message}` }];
-            }
-        }
-
-        async function fetchSimilarSentences(originalSentence) {
-            sentenceErrorMessageElem.classList.add('hidden');
-            sentenceErrorMessageElem.querySelector('span').textContent = '';
-
-            const prompt = `For the sentence '${originalSentence}', provide exactly 5 practical sentences that are similar in meaning, structure, or help practice similar phonetic patterns and overall fluency. Each sentence should be easy to understand and use natural English, specifically designed to help a non-native English speaker improve their pronunciation and speaking rhythm. Return the output as a JSON array where each object has a 'sentence' (string) key. If you cannot find 5, provide as many as possible.`;
-
-            try {
-                const generationConfig = {
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: "ARRAY",
-                        items: {
-                            type: "OBJECT",
-                            properties: {
-                                "sentence": { "type": "STRING" }
-                            },
-                            "propertyOrdering": ["sentence"]
-                        }
-                    }
-                };
-
-                const chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
-                const payload = { contents: chatHistory, generationConfig: generationConfig };
-                // !!! IMPORTANT: Replace "YOUR_GEMINI_API_KEY" below with your actual Google Cloud/Gemini API key for text generation. !!!
-                // This is the ONLY API key required in this version.
-                // You can obtain a Gemini API key from Google AI Studio (https://aistudio.google.com/app/apikey) or Google Cloud Console.
-                const apiKey = "YOUR_GEMINI_API_KEY"; // <--- REPLACE THIS LINE WITH YOUR ACTUAL GEMINI API KEY
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
-                }
-
-                const result = await response.json();
-                if (result.candidates && result.candidates.length > 0 &&
-                    result.candidates[0].content && result.candidates[0].content.parts &&
-                    result.candidates[0].content.parts.length > 0) {
-                    const jsonString = result.candidates[0].content.parts[0].text;
-                    try {
-                        const parsedJson = JSON.parse(jsonString);
-                        if (Array.isArray(parsedJson) && parsedJson.every(item => typeof item === 'object' && 'sentence' in item)) {
-                            return parsedJson;
-                        } else {
-                            console.warn("LLM response format unexpected (Sentences):", parsedJson);
-                            return [{ sentence: "Could not parse API response." }];
-                        }
-                    } catch (parseError) {
-                        console.error("Failed to parse LLM JSON response (Sentences):", parseError, jsonString);
-                        return [{ sentence: "Could not parse API response." }];
-                    }
-                } else {
-                    console.warn("No content in LLM response (Sentences):", result);
-                    return [{ sentence: "No results. Could not find similar sentences." }];
-                }
-            } catch (error) {
-                console.error("Error fetching similar sentences for:", originalSentence, error);
-                sentenceErrorMessageElem.classList.remove('hidden');
-                sentenceErrorMessageElem.querySelector('span').textContent = `Failed to fetch sentences for "${originalSentence}". Please try again. (Details: ${error.message})`;
-                return [{ sentence: `Failed to fetch: ${error.message}` }];
-            }
-        }
-
-
-        // --- Event Listeners and Initial Render ---
-
-        document.addEventListener('DOMContentLoaded', () => {
-            renderWordInputs();
-            renderSentenceInputs();
-        });
-
-        document.getElementById('addWordFieldBtn').onclick = handleAddWordField;
-        document.getElementById('addSentenceFieldBtn').onclick = handleAddSentenceField;
-
-        findWordsBtn.onclick = async () => {
-            wordLoading = true;
-            updateWordButtonState();
-            const wordsToProcess = wordEntries
-                                    .map(entry => entry.value.trim())
-                                    .filter(value => value.length > 0);
-
-            if (wordsToProcess.length < 1) {
-                wordErrorMessageElem.classList.remove('hidden');
-                wordErrorMessageElem.querySelector('span').textContent = 'Please enter at least one word to practice.';
-                wordLoading = false;
-                updateWordButtonState();
-                return;
-            }
-
-            wordResults = {}; // Clear previous results
-            for (const word of wordsToProcess) {
-                wordResults[word] = await fetchSimilarWords(word);
-            }
-            wordLoading = false;
-            updateWordButtonState();
-            renderResults();
-        };
-
-        findSentencesBtn.onclick = async () => {
-            sentenceLoading = true;
-            updateSentenceButtonState();
-            const sentencesToProcess = sentenceEntries
-                                        .map(entry => entry.value.trim())
-                                        .filter(value => value.length > 0);
-
-            if (sentencesToProcess.length < 1) {
-                sentenceErrorMessageElem.classList.remove('hidden');
-                sentenceErrorMessageElem.querySelector('span').textContent = 'Please enter at least one sentence to practice.';
-                sentenceLoading = false;
-                updateSentenceButtonState();
-                return;
-            }
-
-            sentenceResults = {}; // Clear previous results
-            for (const sentence of sentencesToProcess) {
-                sentenceResults[sentence] = await fetchSimilarSentences(sentence);
-            }
-            sentenceLoading = false;
-            updateSentenceButtonState();
-            renderResults();
-        };
-
-        // Initial state updates for buttons after Firebase auth
-        // This setInterval is primarily for ensuring buttons are enabled/disabled
-        // correctly based on loading state and input, not for auth readiness anymore.
-        setInterval(() => {
-            updateWordButtonState();
-            updateSentenceButtonState();
-        }, 500);
-
-    </script>
+document.addEventListener('DOMContentLoaded', () => {
+  renderWordInputs();
+  renderSentenceInputs();
+});
+document.getElementById('addWordFieldBtn').onclick = handleAddWordField;
+document.getElementById('addSentenceFieldBtn').onclick = handleAddSentenceField;
+findWordsBtn.onclick = async () => {
+  wordLoading = true;
+  updateWordButtonState();
+  const wordsToProcess = wordEntries.map(entry => entry.value.trim()).filter(v => v.length > 0);
+  if (wordsToProcess.length < 1) {
+    wordErrorMessageElem.classList.remove('hidden');
+    wordErrorMessageElem.querySelector('span').textContent = 'Please enter at least one word.';
+    wordLoading = false;
+    updateWordButtonState();
+    return;
+  }
+  wordResults = {};
+  for (const word of wordsToProcess) {
+    wordResults[word] = await fetchSimilarWords(word);
+  }
+  wordLoading = false;
+  updateWordButtonState();
+  renderResults();
+};
+findSentencesBtn.onclick = async () => {
+  sentenceLoading = true;
+  updateSentenceButtonState();
+  const sentencesToProcess = sentenceEntries.map(entry => entry.value.trim()).filter(v => v.length > 0);
+  if (sentencesToProcess.length < 1) {
+    sentenceErrorMessageElem.classList.remove('hidden');
+    sentenceErrorMessageElem.querySelector('span').textContent = 'Please enter at least one sentence.';
+    sentenceLoading = false;
+    updateSentenceButtonState();
+    return;
+  }
+  sentenceResults = {};
+  for (const sentence of sentencesToProcess) {
+    sentenceResults[sentence] = await fetchSimilarSentences(sentence);
+  }
+  sentenceLoading = false;
+  updateSentenceButtonState();
+  renderResults();
+};
+</script>
 </body>
 </html>
