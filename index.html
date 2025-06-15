@@ -192,6 +192,7 @@ function handleSentenceInputChange(id, newValue) {
   updateSentenceButtonState();
 }
 function updateSentenceButtonState() {
+  // FIXED LOGIC: The bug was here! Was using .length > 0 instead of .trim().length > 0
   const hasEnoughSentences = sentenceEntries.filter(e => e.value.trim().length > 0).length >= 1;
   findSentencesBtn.disabled = sentenceLoading || !hasEnoughSentences;
   findSentencesBtn.classList.toggle('bg-indigo-300', findSentencesBtn.disabled);
@@ -224,7 +225,6 @@ async function fetchSimilarWords(wordEntryValue) {
       .filter((w, i, arr) => arr.indexOf(w) === i && w.toLowerCase() !== originalWord.toLowerCase())
       .slice(0, 10);
 
-    // Get up to 10 sentences for words in parallel with fallback after 2 seconds each
     async function getSentence(word) {
       try {
         const tatUrl = `https://tatoeba.org/en/api_v0/search?from=eng&to=eng&query=${encodeURIComponent(word)}`;
@@ -246,8 +246,6 @@ async function fetchSimilarWords(wordEntryValue) {
     if (allWords.length === 0) {
       return [{ word: "No words found", sentence: "Try another word!" }];
     }
-
-    // Fetch all sentences in parallel, much faster than before!
     let arr = await Promise.all(
       allWords.map(async word => ({
         word,
@@ -263,23 +261,54 @@ async function fetchSimilarWords(wordEntryValue) {
   }
 }
 
-// Sentence paraphrase fallback
-function simpleParaphrase(sentence) {
-  let paraphrases = [
-    sentence.replace(/\bI\b/g, "We"),
-    sentence.replace(/\bmy\b/g, "our"),
-    sentence.replace(/\bthe\b/g, "that"),
-    sentence.replace(/\ba\b/g, "one"),
-    sentence.replace(/\bis\b/g, "was"),
-    sentence + " (again)",
-    "Practice: " + sentence
-  ];
-  return paraphrases.filter((v, i, arr) => v.trim() && arr.indexOf(v) === i).slice(0,5);
-}
-async function fetchSimilarSentences(originalSentence) {
+// --- THIS IS THE IMPROVED SENTENCE PRACTICE FUNCTION ---
+async function fetchSimilarSentences(sentence) {
   sentenceErrorMessageElem.classList.add('hidden');
   sentenceErrorMessageElem.querySelector('span').textContent = '';
-  return simpleParaphrase(originalSentence).map(s => ({ sentence: s }));
+  const words = sentence.split(/\s+/);
+
+  // Only attempt synonyms for content words (not short words, pronouns, articles, etc.)
+  const stopWords = new Set(["the","a","an","of","and","or","to","in","on","at","by","is","are","was","were","it","for","with","from","as","that","this","these","those","I","you","he","she","we","they","my","your","his","her","our","their"]);
+  let candidates = [];
+
+  // Build list of {index, word, synonym}
+  for (let i = 0; i < words.length; ++i) {
+    let plain = words[i].replace(/[.,?!]/g, "");
+    if (!stopWords.has(plain.toLowerCase()) && plain.length > 2) {
+      try {
+        // Only fetch synonyms
+        let datamuseUrl = `https://api.datamuse.com/words?rel_syn=${encodeURIComponent(plain)}&max=2`;
+        let res = await fetch(datamuseUrl);
+        let syns = await res.json();
+        if (syns.length && syns[0].word.toLowerCase() !== plain.toLowerCase()) {
+          candidates.push({ idx: i, original: words[i], synonym: syns[0].word });
+        }
+      } catch {}
+    }
+    if (candidates.length >= 4) break; // Limit to 4 substitutions per sentence
+  }
+
+  let sentences = [];
+
+  // Build one variant per synonym, swapping only one word per variant
+  for (let c of candidates) {
+    let newWords = words.slice();
+    newWords[c.idx] = c.synonym + (/[.,?!]+$/.test(words[c.idx]) ? words[c.idx].match(/[.,?!]+$/)[0] : "");
+    sentences.push({ sentence: newWords.join(" ") });
+  }
+
+  // Fallback: add practice variants if none found
+  if (!sentences.length) {
+    sentences.push({ sentence: sentence });
+    sentences.push({ sentence: "Practice: " + sentence });
+    sentences.push({ sentence: "Say this three times: " + sentence });
+  } else {
+    // Always include original at the top
+    sentences.unshift({ sentence: sentence });
+  }
+
+  // Only return up to 5
+  return sentences.slice(0, 5);
 }
 
 function showLoading(show) {
