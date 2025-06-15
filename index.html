@@ -5,12 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Word Weaver - Master Your Pronunciation</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20width%3D%2232%22%20height%3D%2232%22%20viewBox%3D%220%200%2050%2050%22%20fill%3D%22none%22%20xmlns%3D%22http://www.w3.org/2000/svg%22%3E%3Cdefs%3E%3CradialGradient%20id%3D%22a%22%20cx%3D%220.5%22%20cy%3D%220.5%22%20r%3D%220.7%22%3E%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%23ffd700%22/%3E%3Cstop%20offset%3D%2240%25%22%20stop-color%3D%22%23f75bff%22/%3E%3Cstop%20offset%3D%2270%25%22%20stop-color%3D%22%2300e7ff%22/%3E%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%236a11cb%22/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle%20cx%3D%2225%22%20cy%3D%2225%22%20r%3D%2224%22%20fill%3D%22url(%23a)%22/%3E%3C/svg%3E" />
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     body { font-family: 'Inter', sans-serif; }
     .scrollable-content { max-height: 400px; overflow-y: auto; }
     .scrollable-content::-webkit-scrollbar { width: 8px; }
     .scrollable-content::-webkit-scrollbar-thumb { background-color: #9ca3af; border-radius: 10px; }
+    .spinner { border: 4px solid #e5e7eb; border-top: 4px solid #6366f1; border-radius: 50%; width: 32px; height: 32px; animation: spin 1s linear infinite; margin:auto;}
+    @keyframes spin { 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col items-center p-4">
@@ -19,7 +22,6 @@
     <p class="text-xl text-gray-600">Master tricky words and sentences through everyday practice.</p>
   </header>
   <main class="w-full max-w-4xl bg-white rounded-3xl shadow-xl p-8 md:p-12 mb-8 border border-blue-200">
-    <!-- Word Practice Section -->
     <section class="mb-12 pb-8 border-b border-blue-100">
       <h2 class="text-3xl font-bold text-indigo-600 mb-4">Refine Your Word Pronunciation</h2>
       <p class="text-lg text-gray-700 mb-6">
@@ -31,7 +33,6 @@
       <button id="findWordsBtn" class="w-full px-8 py-4 rounded-xl text-white font-semibold text-lg shadow-lg mt-4 bg-indigo-600 hover:bg-indigo-700">Get Word Practice</button>
       <div id="wordErrorMessage" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl relative mt-4 hidden"><strong>Oops!</strong> <span></span></div>
     </section>
-    <!-- Sentence Practice Section -->
     <section class="mb-8 pt-8">
       <h2 class="text-3xl font-bold text-indigo-600 mb-4">Practice Challenging Sentences</h2>
       <p class="text-lg text-gray-700 mb-6">Enter a sentence you find difficult to say. We'll provide similar sentences for practice.</p>
@@ -40,12 +41,12 @@
       <button id="findSentencesBtn" class="w-full px-8 py-4 rounded-xl text-white font-semibold text-lg shadow-lg mt-4 bg-indigo-600 hover:bg-indigo-700">Get Sentence Practice</button>
       <div id="sentenceErrorMessage" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl relative mt-4 hidden"><strong>Oops!</strong> <span></span></div>
     </section>
-    <!-- Combined Results Section -->
     <section>
       <div id="resultsTitle" class="text-3xl font-bold text-indigo-600 mb-6 border-b pb-3 border-blue-200 hidden">Your Personalized Practice Kit</div>
       <div id="wordResultsContainer"></div>
       <div id="sentenceResultsContainer"></div>
     </section>
+    <div id="loadingOverlay" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.5);z-index:50;justify-content:center;align-items:center;"><div class="spinner"></div></div>
   </main>
   <footer class="w-full max-w-4xl text-center py-6 text-gray-500 text-sm">
     <p>&copy; <span id="currentYear"></span> Word Weaver. All rights reserved.</p>
@@ -69,6 +70,7 @@ const sentenceErrorMessageElem = document.getElementById('sentenceErrorMessage')
 const wordResultsContainer = document.getElementById('wordResultsContainer');
 const sentenceResultsContainer = document.getElementById('sentenceResultsContainer');
 const resultsTitle = document.getElementById('resultsTitle');
+const loadingOverlay = document.getElementById('loadingOverlay');
 
 function renderWordInputs() {
   wordInputsContainer.innerHTML = '';
@@ -123,7 +125,6 @@ function renderResults() {
   sentenceResultsContainer.innerHTML = '';
   const hasResults = Object.keys(wordResults).length > 0 || Object.keys(sentenceResults).length > 0;
   resultsTitle.classList.toggle('hidden', !hasResults);
-  // Word results
   Object.entries(wordResults).forEach(([originalWordInput, wordsData]) => {
     const displayWord = originalWordInput.split('(')[0].trim();
     const div = document.createElement('div');
@@ -141,7 +142,6 @@ function renderResults() {
       }</ul></div>`;
     wordResultsContainer.appendChild(div);
   });
-  // Sentence results
   Object.entries(sentenceResults).forEach(([originalSentenceInput, sentencesData]) => {
     const div = document.createElement('div');
     div.className = 'mb-10 p-6 bg-purple-50 rounded-2xl shadow-md border border-purple-200';
@@ -197,6 +197,14 @@ function updateSentenceButtonState() {
   findSentencesBtn.classList.toggle('bg-indigo-300', findSentencesBtn.disabled);
 }
 
+// Helper: Race a promise with timeout
+function promiseTimeout(promise, ms, fallbackValue) {
+  return Promise.race([
+    promise,
+    new Promise(resolve => setTimeout(() => resolve(fallbackValue), ms))
+  ]);
+}
+
 async function fetchSimilarWords(wordEntryValue) {
   wordErrorMessageElem.classList.add('hidden');
   wordErrorMessageElem.querySelector('span').textContent = '';
@@ -204,7 +212,6 @@ async function fetchSimilarWords(wordEntryValue) {
   const originalWord = parts[0].trim();
 
   try {
-    // Step 1: Find similar-sounding and related words using Datamuse API
     let datamuseUrl = `https://api.datamuse.com/words?rel_rhy=${encodeURIComponent(originalWord)}&max=6`;
     let res = await fetch(datamuseUrl);
     let rhymeWords = await res.json();
@@ -217,34 +224,36 @@ async function fetchSimilarWords(wordEntryValue) {
       .filter((w, i, arr) => arr.indexOf(w) === i && w.toLowerCase() !== originalWord.toLowerCase())
       .slice(0, 10);
 
-    // Step 2: For each word, try to find a simple sentence using Tatoeba API (free and public)
+    // Get up to 10 sentences for words in parallel with fallback after 2 seconds each
     async function getSentence(word) {
       try {
         const tatUrl = `https://tatoeba.org/en/api_v0/search?from=eng&to=eng&query=${encodeURIComponent(word)}`;
-        const response = await fetch(tatUrl);
-        const data = await response.json();
-        if (data && data.results && data.results.length > 0) {
-          const ex = data.results.find(r => r.text.includes(word));
-          if (ex) return ex.text;
-        }
-        // fallback:
-        return `Can you use "${word}" in a sentence?`;
+        let p = fetch(tatUrl)
+          .then(r => r.json())
+          .then(data => {
+            if (data && data.results && data.results.length > 0) {
+              const ex = data.results.find(r => r.text.toLowerCase().includes(word.toLowerCase()));
+              if (ex) return ex.text;
+            }
+            return null;
+          });
+        let result = await promiseTimeout(p, 2000, null);
+        return result || `No example sentence found for "${word}".`;
       } catch {
-        return `Can you use "${word}" in a sentence?`;
+        return `No example sentence found for "${word}".`;
       }
     }
-
-    // If no related words found, return fallback message
     if (allWords.length === 0) {
       return [{ word: "No words found", sentence: "Try another word!" }];
     }
 
-    // Step 3: Map each to {word, sentence}
-    const arr = [];
-    for (let word of allWords) {
-      let sentence = await getSentence(word);
-      arr.push({ word, sentence });
-    }
+    // Fetch all sentences in parallel, much faster than before!
+    let arr = await Promise.all(
+      allWords.map(async word => ({
+        word,
+        sentence: await getSentence(word)
+      }))
+    );
     return arr;
 
   } catch (error) {
@@ -254,9 +263,8 @@ async function fetchSimilarWords(wordEntryValue) {
   }
 }
 
-// Fallback: Simple sentence paraphraser using basic transforms
+// Sentence paraphrase fallback
 function simpleParaphrase(sentence) {
-  // 1. Flip subject/pronoun to another similar pronoun
   let paraphrases = [
     sentence.replace(/\bI\b/g, "We"),
     sentence.replace(/\bmy\b/g, "our"),
@@ -266,15 +274,16 @@ function simpleParaphrase(sentence) {
     sentence + " (again)",
     "Practice: " + sentence
   ];
-  // Return unique and not empty sentences
   return paraphrases.filter((v, i, arr) => v.trim() && arr.indexOf(v) === i).slice(0,5);
 }
-
 async function fetchSimilarSentences(originalSentence) {
   sentenceErrorMessageElem.classList.add('hidden');
   sentenceErrorMessageElem.querySelector('span').textContent = '';
-  // For this public/free version, use a simple transformation fallback
   return simpleParaphrase(originalSentence).map(s => ({ sentence: s }));
+}
+
+function showLoading(show) {
+  loadingOverlay.style.display = show ? "flex" : "none";
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -283,14 +292,17 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 document.getElementById('addWordFieldBtn').onclick = handleAddWordField;
 document.getElementById('addSentenceFieldBtn').onclick = handleAddSentenceField;
+
 findWordsBtn.onclick = async () => {
   wordLoading = true;
+  showLoading(true);
   updateWordButtonState();
   const wordsToProcess = wordEntries.map(entry => entry.value.trim()).filter(v => v.length > 0);
   if (wordsToProcess.length < 1) {
     wordErrorMessageElem.classList.remove('hidden');
     wordErrorMessageElem.querySelector('span').textContent = 'Please enter at least one word.';
     wordLoading = false;
+    showLoading(false);
     updateWordButtonState();
     return;
   }
@@ -299,17 +311,21 @@ findWordsBtn.onclick = async () => {
     wordResults[word] = await fetchSimilarWords(word);
   }
   wordLoading = false;
+  showLoading(false);
   updateWordButtonState();
   renderResults();
 };
+
 findSentencesBtn.onclick = async () => {
   sentenceLoading = true;
+  showLoading(true);
   updateSentenceButtonState();
   const sentencesToProcess = sentenceEntries.map(entry => entry.value.trim()).filter(v => v.length > 0);
   if (sentencesToProcess.length < 1) {
     sentenceErrorMessageElem.classList.remove('hidden');
     sentenceErrorMessageElem.querySelector('span').textContent = 'Please enter at least one sentence.';
     sentenceLoading = false;
+    showLoading(false);
     updateSentenceButtonState();
     return;
   }
@@ -318,6 +334,7 @@ findSentencesBtn.onclick = async () => {
     sentenceResults[sentence] = await fetchSimilarSentences(sentence);
   }
   sentenceLoading = false;
+  showLoading(false);
   updateSentenceButtonState();
   renderResults();
 };
